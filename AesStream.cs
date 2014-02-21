@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.IO;
 using System.Security.Cryptography;
 
 namespace CWrapped {
-    public class AesStream {
+    public class AesStream : IDisposable {
         public CryptoStream decryptStream;
         public CryptoStream encryptStream;
         private byte[] _key;
@@ -35,6 +35,17 @@ namespace CWrapped {
             Cipher.IV = key;
 
             return Cipher;
+        }
+        
+        public void Dispose() {
+            if (decryptStream != null)
+                decryptStream.Dispose();
+
+            if (encryptStream != null)
+                encryptStream.Dispose();
+
+            if (baseStream != null)
+                baseStream.Dispose();
         }
     }
 }
