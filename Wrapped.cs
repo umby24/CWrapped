@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 
 namespace CWrapped
 {
-    public class Wrapped
+    public class Wrapped : IDisposable
     {
         // -- Credits to SirCmpwn for encryption support, as taken from SMProxy.
         public NetworkStream _stream;
@@ -320,5 +320,13 @@ namespace CWrapped
             buffer = null;
         }
         #endregion
+        
+        public void Dispose() {
+            if (_stream != null)
+                _stream.Dispose();
+
+            if (crypto != null)
+                crypto.Dispose();
+        }
     }
 }
