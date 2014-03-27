@@ -187,7 +187,7 @@ namespace CWrapped
 
         public sbyte readSByte() {
             try {
-                return Convert.ToSByte(readSingleByte());
+                return unchecked((sbyte)readSingleByte());
             } catch {
                 return 0;
             }
@@ -195,7 +195,7 @@ namespace CWrapped
 
         public void writeSByte(sbyte mybyte) {
             try {
-                SendByte(Convert.ToByte(mybyte));
+                SendByte(unchecked((byte)mybyte));
             } catch {
                 return;
             }
