@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.IO.Compression;
 using System.Text;
-using System.Net;
 using System.Net.Sockets;
 using System.IO;
-using System.Security.Cryptography;
 
 namespace CWrapped
 {
@@ -14,6 +11,8 @@ namespace CWrapped
         // -- Credits to SirCmpwn for encryption support, as taken from SMProxy.
         public NetworkStream _stream;
         public AesStream crypto;
+        public bool CompEnabled = false;
+        public int CompThreshold;
         public bool EncEnabled = false;
         public byte[] buffer;
 
@@ -24,6 +23,17 @@ namespace CWrapped
         public void InitEncryption(byte[] key) {
             crypto = new AesStream(_stream, key);
         }
+
+        public void SetCompression(int threshold) {
+            if (threshold == -1) {
+                CompEnabled = false;
+                CompThreshold = 0;
+            }
+
+            CompEnabled = true;
+            CompThreshold = threshold;
+        }
+
 
         // -- Strings
 
@@ -305,7 +315,14 @@ namespace CWrapped
         }
 
         public void Purge() {
-            var lenBytes = getVarIntBytes(buffer.Length);
+            if (CompEnabled)
+                PurgeModernWithCompression();
+            else
+                PurgeWithoutCompression();
+        }
+
+        private void PurgeWithoutCompression() {
+            byte[] lenBytes = getVarIntBytes(buffer.Length);
 
             byte[] tempBuff = new byte[buffer.Length + lenBytes.Length];
 
@@ -319,6 +336,47 @@ namespace CWrapped
 
             buffer = null;
         }
+
+        private void PurgeModernWithCompression() {
+            int packetLength = 0; // -- data.Length + GetVarIntBytes(data.Length).Length
+            int dataLength = 0; // -- UncompressedData.Length
+            byte[] data = buffer;
+
+            packetLength = buffer.Length + getVarIntBytes(buffer.Length).Length; // -- Get first Packet length
+
+            if (packetLength >= CompThreshold) // -- if Packet length > threshold, compress
+            {
+                using (MemoryStream outputStream = new MemoryStream())
+                using (DeflateStream inputStream = new DeflateStream(outputStream, CompressionMode.Compress))
+                {
+                    inputStream.Write(buffer, 0, buffer.Length);
+                    inputStream.Close();
+
+                    data = outputStream.ToArray();
+                }
+
+                dataLength = data.Length;
+                packetLength = dataLength + getVarIntBytes(data.Length).Length; // -- Calculate new packet length
+            }
+
+
+            byte[] packetLengthByteLength = getVarIntBytes(packetLength);
+            byte[] dataLengthByteLength = getVarIntBytes(dataLength);
+
+            byte[] tempBuf = new byte[data.Length + packetLengthByteLength.Length + dataLengthByteLength.Length];
+
+            Buffer.BlockCopy(packetLengthByteLength, 0, tempBuf, 0, packetLengthByteLength.Length);
+            Buffer.BlockCopy(dataLengthByteLength, 0, tempBuf, packetLengthByteLength.Length, dataLengthByteLength.Length);
+            Buffer.BlockCopy(data, 0, tempBuf, packetLengthByteLength.Length + dataLengthByteLength.Length, data.Length);
+
+            if (EncEnabled)
+                crypto.encryptStream.Write(tempBuf, 0, tempBuf.Length);
+            else
+                _stream.Write(tempBuf, 0, tempBuf.Length);
+
+            buffer = null;
+        }
+
         #endregion
         
         public void Dispose() {
