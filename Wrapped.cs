@@ -9,19 +9,19 @@ namespace CWrapped
     public class Wrapped : IDisposable
     {
         // -- Credits to SirCmpwn for encryption support, as taken from SMProxy.
-        public NetworkStream _stream;
-        public AesStream crypto;
+        public NetworkStream Stream;
+        public AesStream Crypto;
         public bool CompEnabled = false;
         public int CompThreshold;
         public bool EncEnabled = false;
-        public byte[] buffer;
-
+        public byte[] Buffer;
+         
         public Wrapped(NetworkStream stream) {
-            _stream = stream;
+            Stream = stream;
         }
 
         public void InitEncryption(byte[] key) {
-            crypto = new AesStream(_stream, key);
+            Crypto = new AesStream(Stream, key);
         }
 
         public void SetCompression(int threshold) {
@@ -37,34 +37,34 @@ namespace CWrapped
 
         // -- Strings
 
-        public string readString() {
-            int length = readVarInt();
-            byte[] stringBytes = readByteArray(length);
+        public string ReadString() {
+            var length = ReadVarInt();
+            var stringBytes = ReadByteArray(length);
 
             return Encoding.UTF8.GetString(stringBytes);
         }
 
-        public void writeString(string message) {
-            byte[] length = getVarIntBytes((long)message.Length);
-            byte[] final = new byte[message.Length + length.Length];
+        public void WriteString(string message) {
+            var length = GetVarIntBytes(message.Length);
+            var final = new byte[message.Length + length.Length];
 
-            Buffer.BlockCopy(length, 0, final, 0, length.Length);
-            Buffer.BlockCopy(Encoding.UTF8.GetBytes(message), 0, final, length.Length, message.Length);
+            System.Buffer.BlockCopy(length, 0, final, 0, length.Length);
+            System.Buffer.BlockCopy(Encoding.UTF8.GetBytes(message), 0, final, length.Length, message.Length);
 
             Send(final);
         }
 
         // -- Shorts
 
-        public short readShort() {
-            byte[] bytes = readByteArray(2);
+        public short ReadShort() {
+            var bytes = ReadByteArray(2);
             Array.Reverse(bytes);
 
             return BitConverter.ToInt16(bytes, 0);
         }
 
-        public void writeShort(short message) {
-            byte[] bytes = BitConverter.GetBytes(message);
+        public void WriteShort(short message) {
+            var bytes = BitConverter.GetBytes(message);
             Array.Reverse(bytes);
 
             Send(bytes);
@@ -72,15 +72,15 @@ namespace CWrapped
 
         // -- Integer
 
-        public int readInt() {
-            byte[] bytes = readByteArray(4);
+        public int ReadInt() {
+            var bytes = ReadByteArray(4);
             Array.Reverse(bytes);
 
             return BitConverter.ToInt32(bytes, 0);
         }
 
-        public void writeInt(int number) {
-            byte[] bytes = BitConverter.GetBytes(number);
+        public void WriteInt(int number) {
+            var bytes = BitConverter.GetBytes(number);
             Array.Reverse(bytes);
 
             Send(bytes);
@@ -88,12 +88,12 @@ namespace CWrapped
 
         // -- VarInt
 
-        public int readVarInt() {
-            int result = 0;
-            int length = 0;
+        public int ReadVarInt() {
+            var result = 0;
+            var length = 0;
 
             while (true) {
-                byte current = readByte();
+                var current = ReadByte();
                 result |= (current & 0x7F) << length++ * 7;
 
                 if (length > 5)
@@ -106,16 +106,16 @@ namespace CWrapped
             return result;
         }
 
-        public void writeVarInt(long number) {
-            Send(getVarIntBytes(number));
+        public void WriteVarInt(long number) {
+            Send(GetVarIntBytes(number));
         }
 
-        public byte[] getVarIntBytes(long number) {
-            byte[] byteBuffer = new byte[10];
+        public byte[] GetVarIntBytes(long number) {
+            var byteBuffer = new byte[10];
             short pos = 0;
 
             do {
-                byte byteVal = (byte)(number & 0x7F);
+                var byteVal = (byte)(number & 0x7F);
                 number >>= 7;
 
                 if (number != 0)
@@ -125,23 +125,23 @@ namespace CWrapped
                 pos += 1;
             } while (number != 0);
 
-            byte[] result = new byte[pos];
-            Buffer.BlockCopy(byteBuffer, 0, result, 0, pos);
+            var result = new byte[pos];
+            System.Buffer.BlockCopy(byteBuffer, 0, result, 0, pos);
 
             return result;
         }
 
         // -- Long
 
-        public long readLong() {
-            byte[] bytes = readByteArray(8);
+        public long ReadLong() {
+            var bytes = ReadByteArray(8);
             Array.Reverse(bytes);
 
             return BitConverter.ToInt64(bytes, 0);
         }
 
-        public void writeLong(long number) {
-            byte[] bytes = BitConverter.GetBytes(number);
+        public void WriteLong(long number) {
+            var bytes = BitConverter.GetBytes(number);
             Array.Reverse(bytes);
 
             Send(bytes);
@@ -149,15 +149,15 @@ namespace CWrapped
 
         // -- Doubles
 
-        public double readDouble() {
-            byte[] bytes = readByteArray(8);
+        public double ReadDouble() {
+            var bytes = ReadByteArray(8);
             Array.Reverse(bytes);
 
             return BitConverter.ToDouble(bytes, 0);
         }
 
-        public void writeDouble(double number) {
-            byte[] bytes = BitConverter.GetBytes(number);
+        public void WriteDouble(double number) {
+            var bytes = BitConverter.GetBytes(number);
             Array.Reverse(bytes);
 
             Send(bytes);
@@ -165,15 +165,15 @@ namespace CWrapped
 
         // -- Floats
 
-        public float readFloat() {
-            byte[] bytes = readByteArray(4);
+        public float ReadFloat() {
+            var bytes = ReadByteArray(4);
             Array.Reverse(bytes);
 
             return BitConverter.ToSingle(bytes, 0);
         }
 
-        public void writeFloat(float number) {
-            byte[] bytes = BitConverter.GetBytes(number);
+        public void WriteFloat(float number) {
+            var bytes = BitConverter.GetBytes(number);
             Array.Reverse(bytes);
 
             Send(bytes);
@@ -181,136 +181,102 @@ namespace CWrapped
 
         // -- Bytes
 
-        public byte readByte() {
-            return readSingleByte();
+        public byte ReadByte() {
+            return ReadSingleByte();
         }
 
-        public void writeByte(byte mybyte) {
+        public void WriteByte(byte mybyte) {
             try {
                 SendByte(mybyte);
             } catch {
-                return;
             }
         }
 
         // -- SByte
 
-        public sbyte readSByte() {
+        public sbyte ReadSByte() {
             try {
-                return unchecked((sbyte)readSingleByte());
+                return unchecked((sbyte)ReadSingleByte());
             } catch {
                 return 0;
             }
         }
 
-        public void writeSByte(sbyte mybyte) {
+        public void WriteSByte(sbyte mybyte) {
             try {
                 SendByte(unchecked((byte)mybyte));
             } catch {
-                return;
             }
         }
 
         // -- Bool
 
-        public bool readBool() {
+        public bool ReadBool() {
             try {
-                return Convert.ToBoolean(readSingleByte());
+                return Convert.ToBoolean(ReadSingleByte());
             } catch {
                 return false;
             }
         }
 
-        public void writeBool(bool mybool) {
+        public void WriteBool(bool mybool) {
             try {
                 SendByte(Convert.ToByte(mybool));
             } catch {
-                return;
             }
         }
 
         #region Send and Receive
-        public byte readSingleByte() {
+        public byte ReadSingleByte() {
             if (EncEnabled)
-                return (byte)crypto.decryptStream.ReadByte();
-            else
-                return (byte)_stream.ReadByte();
+                return (byte)Crypto.decryptStream.ReadByte();
+
+            return (byte)Stream.ReadByte();
         }
 
-        public byte[] readByteArray(int size) {
-            if (!EncEnabled) {
-                byte[] myBytes = new byte[size];
-                int BytesRead;
+        public byte[] ReadByteArray(int size) {
+            var received = 0;
+            var myBytes = new byte[size];
 
-                BytesRead = _stream.Read(myBytes, 0, size);
+            while (received != size) {
+                size -= received;
 
-                while (true) {
-                    if (BytesRead != size) {
-                        int newSize = size - BytesRead;
-                        int BytesRead1 = _stream.Read(myBytes, BytesRead - 1, newSize);
+                if (received != 0)
+                    received -= 1;
 
-                        if (!(BytesRead1 == newSize)) {
-                            size = newSize;
-                            BytesRead = BytesRead1;
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                return myBytes;
-            } else {
-                byte[] myBytes = new byte[size];
-                int BytesRead;
-
-                BytesRead = crypto.decryptStream.Read(myBytes, 0, size);
-
-                while (true) {
-                    if (BytesRead != size) {
-                        int newSize = size - BytesRead;
-                        int BytesRead1 = crypto.decryptStream.Read(myBytes, BytesRead - 1, newSize);
-
-                        if (!(BytesRead1 == newSize)) {
-                            size = newSize;
-                            BytesRead = BytesRead1;
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                return myBytes;
+                if (EncEnabled)
+                    received = Crypto.decryptStream.Read(myBytes, received, size);
+                else 
+                    Stream.Read(myBytes, received, size);
             }
+
+            return myBytes;
         }
 
         public void Send(byte[] bArray) {
-            if (buffer != null) {
-                int tempLength = buffer.Length + bArray.Length;
-                byte[] tempBuff = new byte[tempLength];
+            if (Buffer != null) {
+                var tempLength = Buffer.Length + bArray.Length;
+                var tempBuff = new byte[tempLength];
 
-                Buffer.BlockCopy(buffer, 0, tempBuff, 0, buffer.Length);
-                Buffer.BlockCopy(bArray, 0, tempBuff, buffer.Length, bArray.Length);
+                System.Buffer.BlockCopy(Buffer, 0, tempBuff, 0, Buffer.Length);
+                System.Buffer.BlockCopy(bArray, 0, tempBuff, Buffer.Length, bArray.Length);
 
-                buffer = tempBuff;
+                Buffer = tempBuff;
             } else {
-                buffer = bArray;
+                Buffer = bArray;
             }
         }
 
         void SendByte(byte thisByte) {
-            if (buffer != null) {
-                byte[] tempBuff = new byte[buffer.Length + 1];
+            if (Buffer != null) {
+                var tempBuff = new byte[Buffer.Length + 1];
 
-                Buffer.BlockCopy(buffer, 0, tempBuff, 0, buffer.Length);
-                tempBuff[buffer.Length] = thisByte;
+                System.Buffer.BlockCopy(Buffer, 0, tempBuff, 0, Buffer.Length);
+                tempBuff[Buffer.Length] = thisByte;
 
-                buffer = tempBuff;
+                Buffer = tempBuff;
             } else {
-                buffer = new byte[] { thisByte };
+                Buffer = new[] { thisByte };
             }
         }
 
@@ -322,69 +288,68 @@ namespace CWrapped
         }
 
         private void PurgeWithoutCompression() {
-            byte[] lenBytes = getVarIntBytes(buffer.Length);
+            var lenBytes = GetVarIntBytes(Buffer.Length);
 
-            byte[] tempBuff = new byte[buffer.Length + lenBytes.Length];
+            var tempBuff = new byte[Buffer.Length + lenBytes.Length];
 
-            Buffer.BlockCopy(lenBytes, 0, tempBuff, 0, lenBytes.Length);
-            Buffer.BlockCopy(buffer, 0, tempBuff, lenBytes.Length, buffer.Length);
+            System.Buffer.BlockCopy(lenBytes, 0, tempBuff, 0, lenBytes.Length);
+            System.Buffer.BlockCopy(Buffer, 0, tempBuff, lenBytes.Length, Buffer.Length);
 
             if (EncEnabled)
-                crypto.encryptStream.Write(tempBuff, 0, tempBuff.Length);
+                Crypto.encryptStream.Write(tempBuff, 0, tempBuff.Length);
             else
-                _stream.Write(tempBuff, 0, tempBuff.Length);
+                Stream.Write(tempBuff, 0, tempBuff.Length);
 
-            buffer = null;
+            Buffer = null;
         }
 
         private void PurgeModernWithCompression() {
-            int packetLength = 0; // -- data.Length + GetVarIntBytes(data.Length).Length
-            int dataLength = 0; // -- UncompressedData.Length
-            byte[] data = buffer;
+            var dataLength = 0; // -- UncompressedData.Length
+            var data = Buffer;
 
-            packetLength = buffer.Length + getVarIntBytes(buffer.Length).Length; // -- Get first Packet length
+            var packetLength = Buffer.Length + GetVarIntBytes(Buffer.Length).Length;
 
             if (packetLength >= CompThreshold) // -- if Packet length > threshold, compress
             {
-                using (MemoryStream outputStream = new MemoryStream())
-                using (DeflateStream inputStream = new DeflateStream(outputStream, CompressionMode.Compress))
+                using (var outputStream = new MemoryStream())
+                using (var inputStream = new DeflateStream(outputStream, CompressionMode.Compress))
                 {
-                    inputStream.Write(buffer, 0, buffer.Length);
+                    inputStream.Write(Buffer, 0, Buffer.Length);
                     inputStream.Close();
 
                     data = outputStream.ToArray();
                 }
 
                 dataLength = data.Length;
-                packetLength = dataLength + getVarIntBytes(data.Length).Length; // -- Calculate new packet length
+                packetLength = dataLength + GetVarIntBytes(data.Length).Length; // -- Calculate new packet length
             }
 
 
-            byte[] packetLengthByteLength = getVarIntBytes(packetLength);
-            byte[] dataLengthByteLength = getVarIntBytes(dataLength);
+            var packetLengthByteLength = GetVarIntBytes(packetLength);
+            var dataLengthByteLength = GetVarIntBytes(dataLength);
 
-            byte[] tempBuf = new byte[data.Length + packetLengthByteLength.Length + dataLengthByteLength.Length];
+            var tempBuf = new byte[data.Length + packetLengthByteLength.Length + dataLengthByteLength.Length];
 
-            Buffer.BlockCopy(packetLengthByteLength, 0, tempBuf, 0, packetLengthByteLength.Length);
-            Buffer.BlockCopy(dataLengthByteLength, 0, tempBuf, packetLengthByteLength.Length, dataLengthByteLength.Length);
-            Buffer.BlockCopy(data, 0, tempBuf, packetLengthByteLength.Length + dataLengthByteLength.Length, data.Length);
+            System.Buffer.BlockCopy(packetLengthByteLength, 0, tempBuf, 0, packetLengthByteLength.Length);
+            System.Buffer.BlockCopy(dataLengthByteLength, 0, tempBuf, packetLengthByteLength.Length, dataLengthByteLength.Length);
+            System.Buffer.BlockCopy(data, 0, tempBuf, packetLengthByteLength.Length + dataLengthByteLength.Length, data.Length);
 
             if (EncEnabled)
-                crypto.encryptStream.Write(tempBuf, 0, tempBuf.Length);
+                Crypto.encryptStream.Write(tempBuf, 0, tempBuf.Length);
             else
-                _stream.Write(tempBuf, 0, tempBuf.Length);
+                Stream.Write(tempBuf, 0, tempBuf.Length);
 
-            buffer = null;
+            Buffer = null;
         }
 
         #endregion
         
         public void Dispose() {
-            if (_stream != null)
-                _stream.Dispose();
+            if (Stream != null)
+                Stream.Dispose();
 
-            if (crypto != null)
-                crypto.Dispose();
+            if (Crypto != null)
+                Crypto.Dispose();
         }
     }
 }
